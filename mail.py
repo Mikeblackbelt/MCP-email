@@ -2,6 +2,7 @@ import imaplib
 import email
 from email.header import decode_header
 import os
+import json
 from dotenv import load_dotenv
 
 load_dotenv("n.env")  
@@ -47,9 +48,12 @@ def parse_email(msg_data):
     else:
         body = msg.get_payload(decode=True).decode('utf-8', errors='ignore')
     
-    return {
+    return json.dumps({
         "subject": subject,
         "from": from_,
         "date": date_,
         "body": body
-    }
+    }, indent=2)
+
+if __name__ == "__main__":
+    print([parse_email(fetch_mail_by_id(i)) for i in email_ids])
