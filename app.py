@@ -1,116 +1,96 @@
-"""import sys
-import os
-
-# Ensure correct Python environment
-expected = os.path.join(os.getcwd(), "myenv", "Scripts", "python.exe")
-if sys.executable.lower() != expected.lower():
-    os.execv(expected, ["python.exe", __file__])
-"""
 import asyncio
+import email
 from typing import Any
 import httpx
 from mcp.server.fastmcp import FastMCP
-from mcp.server import Server
 import mcp.types as types
 import mail
-import prompts
 import sys
+import datetime
 import json
 
-PROMPTS = prompts.PROMPTS
 loop = asyncio.get_event_loop()
 
-
-# Initialize servers
 mcp = FastMCP("EmailWriter")
-server = Server("EmailWriterServer")
 
-# Prompt registration
-def list_prompts() -> list[types.Prompt]:
-    return list(PROMPTS.values())
 
-@server.get_prompt()
-def get_prompt(name: str, arguments: dict[str, str] | None = None) -> types.GetPromptResult:
-    if name not in PROMPTS:
-        raise ValueError(f"Prompt not found: {name}")
-
-    content = arguments.get("content") if arguments else ""
-    data = arguments.get("data") if arguments else ""
-
-    if name == "describeEmail":
-        return types.GetPromptResult(
-            messages=[
-                types.PromptMessage(
-                    role="user",
-                    content=types.TextContent(
-                        type="text",
-                        text=f"Please summarize the following email content:\n\n{content}"
-                    )
-                )
-            ]
-        )
-
-    if name == "describeMany":
-        return types.GetPromptResult(
-            messages=[
-                types.PromptMessage(
-                    role="user",
-                    content=types.TextContent(
-                        type="text",
-                        text=f"Please summarize the following emails, and return ONLY the most important information from the most important emails in 5 sentences or less TOTAL. Maximum character length is 1000. DO NOT YAP.:\n{data}"
-                    )
-                )
-            ]
-        )
-
-    raise ValueError("Prompt implementation not found")
-
-# email processing helper
 def gather_emails():
     return [mail.parse_email(mail.fetch_mail_by_id(email_id)) for email_id in mail.email_ids]
 
-@mcp.tool("describeEmail")  # corrected tool name
-def describe_all():
+
+@mcp.tool("getRecentEmails")
+def recentEmail(amount: int = 5, filterUnread: bool = False):
+    """
+    Get recent emails
+    Args:
+        amount: int -> Amount of emails to read
+        filterUnread: bool -> Return only unread emails
+    """
     try:
-        data = gather_emails()
-        prompt = get_prompt(
-         "describeMany",
-         arguments={"data": json.dumps(data, indent=2)}
-        )
-        return prompt.messages[1].content.text[0:1000]
+        email_data = gather_emails()
+        email_data.sort(key=lambda x: x.get("date", ""), reverse=True)
+        if filterUnread:
+            email_data = [email for email in email_data if not email.get("seen", False)]
+        return email_data[:amount]
+    except Exception as e:
+        print(f"Error in recentEmail: {e}", file=sys.stderr)
+        raise e
+
+
+@mcp.tool("sendDrafts")
+def sendDrafts(
+    filter_Subject: str = '',
+    filter_DateBefore: datetime.date = None,
+    filter_DateAfter: datetime.date = None,
+    filter_Recipent: str = None
+):
+    drafts = mail.get_Drafts()
+    draft_data = [mail.fetch_mail_by_id(draftID) for draftID in drafts]
+    parsed_data = [mail.parse_email(unparsed) for unparsed in draft_data]
     
+    sent = []
 
-    except Exception as e:
-        print(f"Error in describe_all: {e}", file=sys.stderr)
-        raise
+    for msg in parsed_data:
+        subject = msg.get('subject', '')
+        to = msg.get('to', '')
+        date_str = msg.get('date', '')
+        try:
+            msg_date = email.utils.parsedate_to_datetime(date_str).date()
+        except:
+            msg_date = None
+
+        # Filters
+        if filter_Subject and filter_Subject.lower() not in subject.lower():
+            continue
+
+        if filter_Recipent:
+            to_list = [x.strip().lower() for x in to.split(",")]
+            if filter_Recipent.lower() not in to_list:
+                continue
+
+        if filter_DateBefore and msg_date and msg_date >= filter_DateBefore:
+            continue
+
+        if filter_DateAfter and msg_date and msg_date <= filter_DateAfter:
+            continue
+
+        # Send the email
+        try:
+            result = mail.send_Email(
+                adresss=to,
+                subject=subject,
+                content=msg.get("body", ""),
+                BCC=msg.get("BCC"),
+                CC=msg.get("CC")
+            )
+            if result:
+                sent.append(subject)
+        except Exception as e:
+            print(f"Failed to send draft: {e}", file=sys.stderr)
+
+    return sent, "Success"
 
 
-"""Error executing tool describeEmail: An asyncio.Future, a coroutine or an awaitable is required"""
-
-"""
-@mcp.tool("describeEmail")
-def describe_all():
-    try:
-        import mail
-
-        async def gather_emails():
-            conn, ids = mail.get_email_ids()
-            return await asyncio.gather(*[
-                mail.parse_email(mail.fetch_mail_by_id(conn, email_id))
-                for email_id in ids
-            ])
-
-        data = asyncio.run(gather_emails())
-        return get_prompt(
-            "describeMany",
-            arguments={"data": str(data)}
-        )
-    except Exception as e:
-        print(f"Error in describe_all: {e}", file=sys.stderr)
-        raise
-"""
-
-# Entry point
 if __name__ == "__main__":
     print("Starting EmailWriter server...", file=sys.stderr)
     mcp.run(transport='stdio')
