@@ -15,7 +15,8 @@ mcp = FastMCP("EmailWriter")
 
 
 def gather_emails(isDraft: bool = False):
-    return [mail.parse_email(mail.fetch_mail_by_id(email_id)) for email_id in mail.email_ids] if not isDraft else mail.get_Drafts()
+    IDS = mail.get_Drafts() if isDraft else mail.email_ids
+    return [mail.parse_email(mail.fetch_mail_by_id(email_id)) for email_id in IDS] 
 
 
 @mcp.tool("getRecentEmails")
