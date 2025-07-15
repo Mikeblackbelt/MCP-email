@@ -8,6 +8,7 @@ import mail
 import sys
 import datetime
 import json
+import sheets
 
 loop = asyncio.get_event_loop()
 
@@ -123,6 +124,9 @@ def searchOther(*, author: str = None,BCC: str = None, CC: str = None, isDraft: 
     if (max_amount > len(email_data)): max_amount = len(email_data)
     return email_data[-max_amount:] if max_amount is not None else email_data
 
+@mcp.tool("GetStudentData")
+def getStudentData():
+    return sheets.get_StudentData()
 
 if __name__ == "__main__":
     print("Starting EmailWriter server...", file=sys.stderr)
