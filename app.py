@@ -19,7 +19,7 @@ def gather_emails():
 
 
 @mcp.tool("getRecentEmails")
-def recentEmail(amount: int = 5, filterUnread: bool = False):
+def recentEmail(amount: int = 5, filterUnread: bool = False, filterMailingList: bool = True, range: list[int] = None):
     """
     Get recent emails
     Args:
@@ -31,7 +31,14 @@ def recentEmail(amount: int = 5, filterUnread: bool = False):
         email_data.sort(key=lambda x: x.get("date", ""), reverse=True)
         if filterUnread:
             email_data = [email for email in email_data if not email.get("seen", False)]
-        return email_data[:amount]
+    
+        if filterMailingList:
+            email_data = [email for email in email_data if not email['is_mailing_list']]
+
+        for email in email_data:
+            email
+        return email_data[:amount] if not range else email_data[range[0]:range[1]]
+    
     except Exception as e:
         print(f"Error in recentEmail: {e}", file=sys.stderr)
         raise e
@@ -90,7 +97,12 @@ def sendDrafts(
 
     return sent, "Success"
 
+@mcp.tool('writeDrafts')
+def write_Draft(subject: str, content: str, * ,recipent: str = None, BCC: str = None, CC: str = None):
+    mail.send_Email(recipent, subject, content,BCC=BCC, CC=CC, isDraft=True)
+    return f'Draft to {(recipent if recipent else "no recipent")} with subject {subject} created.'
 
 if __name__ == "__main__":
     print("Starting EmailWriter server...", file=sys.stderr)
     mcp.run(transport='stdio')
+

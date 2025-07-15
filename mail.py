@@ -41,7 +41,6 @@ def fetch_mail_by_id(email_id):
 
 def parse_email(msg_data):
     msg = email.message_from_bytes(msg_data[0][1])
-
     subject, encoding = decode_header(msg["Subject"])[0]
     if isinstance(subject, bytes):
         subject = subject.decode(encoding or "utf-8", errors='ignore')
@@ -55,8 +54,12 @@ def parse_email(msg_data):
     body = ""
     html_body = ""
 
+    mailing_list_headers = ["List-ID", "List-Unsubscribe", "Precedence"]
+    is_mailing_list = any(header in msg for header in mailing_list_headers) or "noreply" in from_
+
     if msg.is_multipart():
         for part in msg.walk():
+            if part is None: continue
             content_type = part.get_content_type()
             content_dispo = str(part.get("Content-Disposition"))
 
@@ -96,7 +99,8 @@ def parse_email(msg_data):
         "BCC": BCC,
         "CC": CC,
         "date": date_,
-        "body": body
+        "body": body,
+        "is_mailing_list": is_mailing_list
     }
 
 
@@ -106,7 +110,7 @@ def get_Drafts():
     return data[0].split() if status == "OK" else []
 
 
-def send_Email(adresss: str, subject: str, content: str, *, BCC: str = None, CC: str = None, msgType: str = 'plain'):
+def send_Email(adresss: str, subject: str, content: str, *, BCC: str = None, CC: str = None, msgType: str = 'plain', isDraft: bool = False):
     try:
         msg = MIMEMultipart()
         msg['From'] = EMAIL
@@ -118,6 +122,9 @@ def send_Email(adresss: str, subject: str, content: str, *, BCC: str = None, CC:
             msg['CC'] = CC
 
         msg.attach(MIMEText(content, msgType))
+
+        if isDraft:
+            msg.add_header('X-Unsent', '1')
 
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls()
