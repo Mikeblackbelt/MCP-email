@@ -14,8 +14,8 @@ loop = asyncio.get_event_loop()
 mcp = FastMCP("EmailWriter")
 
 
-def gather_emails():
-    return [mail.parse_email(mail.fetch_mail_by_id(email_id)) for email_id in mail.email_ids]
+def gather_emails(isDraft: bool = False):
+    return [mail.parse_email(mail.fetch_mail_by_id(email_id)) for email_id in mail.email_ids] if not isDraft else mail.get_Drafts()
 
 
 @mcp.tool("getRecentEmails")
@@ -101,6 +101,27 @@ def sendDrafts(
 def write_Draft(subject: str, content: str, * ,recipent: str = None, BCC: str = None, CC: str = None):
     mail.send_Email(recipent, subject, content,BCC=BCC, CC=CC, isDraft=True)
     return f'Draft to {(recipent if recipent else "no recipent")} with subject {subject} created.'
+
+@mcp.tool('searchByDate')
+def search_by_date(*, start_date: datetime.date = None, end_date: datetime.date = None, max_amount: int = None, isDraft: bool = False):
+    email_data = gather_emails(isDraft)
+    if (start_date is not None): email_data[:] = [email for email in email_data if start_date <= email["date"]]
+    if (end_date is not None):  email_data[:] = [email for email in email_data if end_date >= email["date"]]
+    if int(start_date is not None) + int(end_date is not None) + int(max_amount is not None) < 2: raise ValueError('Not enough arguments')
+    if (max_amount > len(email_data)): max_amount = len(email_data)
+    if (max_amount is not None and end_date is not None): return email_data[-max_amount:]
+    if (max_amount is not None and start_date is not None): return email_data[:max_amount - 1]
+    return email_data
+            
+@mcp.tool('searchOther')
+def searchOther(*, author: str = None,BCC: str = None, CC: str = None, isDraft: bool = False, max_amount: int = None):
+    email_data = gather_emails(isDraft)
+    if (author is not None): email_data = [email for email in email_data if email["from"] == author]
+    if (BCC is not None): email_data = [email for email in email_data if email['BCC'] == BCC]
+    if (CC is not None): email_data = [email for email in email_data if email['CC'] == CC]
+    if (max_amount > len(email_data)): max_amount = len(email_data)
+    return email_data[-max_amount:] if max_amount is not None else email_data
+
 
 if __name__ == "__main__":
     print("Starting EmailWriter server...", file=sys.stderr)

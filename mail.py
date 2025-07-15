@@ -55,7 +55,7 @@ def parse_email(msg_data):
     html_body = ""
 
     mailing_list_headers = ["List-ID", "List-Unsubscribe", "Precedence"]
-    is_mailing_list = any(header in msg for header in mailing_list_headers) or "noreply" in from_
+    is_mailing_list = any(header in msg for header in mailing_list_headers) or any(n in from_.lower() for n in ['noreply','alert','no-reply','donotreply'])
 
     if msg.is_multipart():
         for part in msg.walk():
