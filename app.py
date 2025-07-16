@@ -128,6 +128,25 @@ def searchOther(*, author: str = None,BCC: str = None, CC: str = None, isDraft: 
 def getStudentData():
     return sheets.get_StudentData()
 
+@mcp.tool("GetFilteredStudentData")
+def getFiteredStudentData(*,includeRACE: list[str] = None, includeGPA_RANGE: list[list[int]] = None, includeGENDER: list[str] = None, include_INCOME_RANGE: list[list[int]] = None,includeGrade: list[int] = None,  excludeRACE: list[str] = None, excludeGPA_RANGE: list[list[int]] = None, excludeGENDER: list[str] = None, exclude_INCOME_RANGE: list[list[int]] = None, excludeGrade: list[int] = None):
+    return sheets.filter_out(includeRACE=includeRACE,includeGPA_RANGE=includeGPA_RANGE,includeGENDER=includeGENDER,include_INCOME_RANGE=include_INCOME_RANGE,includeGrade=includeGrade,exclude_INCOME_RANGE=exclude_INCOME_RANGE,excludeGENDER=excludeGENDER,excludeRACE=excludeRACE,excludeGPA_RANGE=excludeGPA_RANGE)
+
+@mcp.tool("GetSpecificStudent")
+def getSpecificStudent(*, firstName:str =None, lastName: str = None, OSIS: int | str = None):
+    if OSIS is not None and type(OSIS) is not int: OSIS = int(OSIS)
+    if not any([lastName is None, firstName is None, OSIS is None]): raise ValueError("Atleast one argument is required")
+    toReturn = []
+    for students in sheets.get_StudentData():
+        if not ((OSIS is not None and int(students['OSIS']) == OSIS) or (OSIS is None)):  continue #filter by osis
+        elif not ((firstName is not None and firstName == students['First Name']) or firstName is None): continue #filter by first
+        elif not ((lastName is not None and lastName == students['Last Name']) or lastName is None): continue
+        else: toReturn.append(students)
+    return toReturn
+
+
+    
+    
 if __name__ == "__main__":
     print("Starting EmailWriter server...", file=sys.stderr)
     mcp.run(transport='stdio')
