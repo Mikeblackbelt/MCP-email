@@ -14,6 +14,7 @@ loop = asyncio.get_event_loop()
 
 mcp = FastMCP("EmailWriter")
 
+HOST = 'claude' #claude if claude
 
 def gather_emails(isDraft: bool = False):
     IDS = mail.get_Drafts() if isDraft else mail.email_ids
@@ -148,6 +149,13 @@ def getSpecificStudent(*, firstName:str =None, lastName: str = None, OSIS: int |
     
     
 if __name__ == "__main__":
-    print("Starting EmailWriter server...", file=sys.stderr)
-    mcp.run(transport='stdio')
+    if HOST == "claude":
+        print("Starting EmailWriter server...", file=sys.stderr)
+        mcp.run(transport='stdio')
+    """elif HOST == 'http':
+        print("Starting EmailWriter server on http://localhost:3333", file=sys.stderr)
+        mcp.run(transport="http", port=3333)""" #dont
+    else:
+        raise ValueError("Invalid Host")
+
 
