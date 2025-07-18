@@ -130,8 +130,10 @@ def getStudentData():
     return sheets.get_StudentData()
 
 @mcp.tool("GetFilteredStudentData")
-def getFiteredStudentData(*,includeRACE: list[str] = None, includeGPA_RANGE: list[list[int]] = None, includeGENDER: list[str] = None, include_INCOME_RANGE: list[list[int]] = None,includeGrade: list[int] = None,  excludeRACE: list[str] = None, excludeGPA_RANGE: list[list[int]] = None, excludeGENDER: list[str] = None, exclude_INCOME_RANGE: list[list[int]] = None, excludeGrade: list[int] = None):
-    return sheets.filter_out(includeRACE=includeRACE,includeGPA_RANGE=includeGPA_RANGE,includeGENDER=includeGENDER,include_INCOME_RANGE=include_INCOME_RANGE,includeGrade=includeGrade,exclude_INCOME_RANGE=exclude_INCOME_RANGE,excludeGENDER=excludeGENDER,excludeRACE=excludeRACE,excludeGPA_RANGE=excludeGPA_RANGE)
+def getFiteredStudentData(*,includeRACE: list[str] = None, includeGPA_RANGE: list[list[int]] = None, includeGENDER: list[str] = None, include_INCOME_RANGE: list[list[int]] = None,includeGrade: list[int] = None,  excludeRACE: list[str] = None, excludeGPA_RANGE: list[list[int]] = None, excludeGENDER: list[str] = None, exclude_INCOME_RANGE: list[list[int]] = None, excludeGrade: list[int] = None, interest: str = None):
+    data = sheets.filter_out(includeRACE=includeRACE,includeGPA_RANGE=includeGPA_RANGE,includeGENDER=includeGENDER,include_INCOME_RANGE=include_INCOME_RANGE,includeGrade=includeGrade,exclude_INCOME_RANGE=exclude_INCOME_RANGE,excludeGENDER=excludeGENDER,excludeRACE=excludeRACE,excludeGPA_RANGE=excludeGPA_RANGE,excludeGrade=excludeGrade)
+    return sheets.get_Interest(interest, student_data=data, categories=1) if interest is not None else data
+        
 
 @mcp.tool("GetSpecificStudent")
 def getSpecificStudent(*, firstName:str =None, lastName: str = None, OSIS: int | str = None):
